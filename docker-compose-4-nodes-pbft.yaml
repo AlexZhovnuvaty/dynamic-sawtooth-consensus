@@ -6,28 +6,28 @@ volumes:
 services:
 
   settings-tp-0:
-    image: hyperledger/sawtooth-settings-tp:1.2.4
+    image: hyperledger/sawtooth-settings-tp:chime
     container_name: sawtooth-settings-tp-0
     depends_on:
       - validator-0
     command: settings-tp -vv --connect tcp://validator-0:4004
 
   settings-tp-1:
-    image: hyperledger/sawtooth-settings-tp:1.2.4
+    image: hyperledger/sawtooth-settings-tp:chime
     container_name: sawtooth-settings-tp-1
     depends_on:
       - validator-1
     command: settings-tp -vv --connect tcp://validator-1:4004
 
   settings-tp-2:
-    image: hyperledger/sawtooth-settings-tp:1.2.4
+    image: hyperledger/sawtooth-settings-tp:chime
     container_name: sawtooth-settings-tp-2
     depends_on:
       - validator-2
     command: settings-tp -vv --connect tcp://validator-2:4004
 
   settings-tp-3:
-    image: hyperledger/sawtooth-settings-tp:1.2.4
+    image: hyperledger/sawtooth-settings-tp:chime
     container_name: sawtooth-settings-tp-3
     depends_on:
       - validator-3
@@ -144,7 +144,7 @@ services:
 #    command: poet-validator-registry-tp -vv -C tcp://validator-3:4004
 
   sawtooth-rest-api-0:
-    image: hyperledger/sawtooth-rest-api:1.2.4
+    image: hyperledger/sawtooth-rest-api:chime
     container_name: sawtooth-rest-api-0
     expose:
       - 8008
@@ -158,7 +158,7 @@ services:
         --bind sawtooth-rest-api-0:8008
 
   sawtooth-rest-api-1:
-    image: hyperledger/sawtooth-rest-api:1.2.4
+    image: hyperledger/sawtooth-rest-api:chime
     container_name: sawtooth-rest-api-1
     expose:
       - 8008
@@ -172,7 +172,7 @@ services:
         --bind sawtooth-rest-api-1:8008
 
   sawtooth-rest-api-2:
-    image: hyperledger/sawtooth-rest-api:1.2.4
+    image: hyperledger/sawtooth-rest-api:chime
     container_name: sawtooth-rest-api-2
     expose:
       - 8008
@@ -186,7 +186,7 @@ services:
         --bind sawtooth-rest-api-2:8008
 
   sawtooth-rest-api-3:
-    image: hyperledger/sawtooth-rest-api:1.2.4
+    image: hyperledger/sawtooth-rest-api:chime
     container_name: sawtooth-rest-api-3
     expose:
       - 8008
@@ -200,7 +200,7 @@ services:
         --bind sawtooth-rest-api-3:8008
 
   validator-0:
-    image: hyperledger/sawtooth-validator:1.2.4
+    image: hyperledger/sawtooth-validator:chime
     container_name: sawtooth-validator-0
     expose:
       - 4004
@@ -208,37 +208,35 @@ services:
       - 8800
     volumes:
       - volume-shared:/volume-shared
-    command: "bash -c \"\
-        if [ ! -f /volume-shared/network_status_0.txt ]; then \
-          echo '--- First run setup started... ---\n'; \
-          sawadm keygen --force; \
-          mkdir -p /volume-shared/validator-0 || true; \
-          cp -a /etc/sawtooth/keys /volume-shared/validator-0/ ; \
-          echo '--- Generate genesis ... ---\n'; \
-          sawset genesis \
-            -k /etc/sawtooth/keys/validator.priv \
-            -o config-genesis.batch ; \
-          echo '--- Wait for pub files ... ---\n'; \
-          while [[ ! -f /volume-shared/validator-1/keys/validator.pub || \
-                   ! -f /volume-shared/validator-2/keys/validator.pub || \
+    command:
+      - bash
+      - -c
+      - |
+        if [ ! -f /volume-shared/network_status_0.txt ]; then
+          echo '--- First run setup started... ---\n'
+          sawadm keygen --force
+          mkdir -p /volume-shared/validator-0 || true
+          cp -a /etc/sawtooth/keys /volume-shared/validator-0/
+          echo '--- Generate genesis ... ---\n'
+          sawset genesis -k /etc/sawtooth/keys/validator.priv -o config-genesis.batch
+          echo '--- Wait for pub files ... ---\n'
+          while [[ ! -f /volume-shared/validator-1/keys/validator.pub ||
+                   ! -f /volume-shared/validator-2/keys/validator.pub ||
                    ! -f /volume-shared/validator-3/keys/validator.pub ]];
-          do sleep 1; ls -l /volume-shared; done; \
-          echo sawtooth.consensus.pbft.members=\\'[\"'$$(cat /volume-shared/validator-0/keys/validator.pub)'\",\"'$$(cat /volume-shared/validator-1/keys/validator.pub)'\",\"'$$(cat /volume-shared/validator-2/keys/validator.pub)'\",\"'$$(cat /volume-shared/validator-3/keys/validator.pub)'\"]\\' ; \
-          echo '--- Create proposal ... ---\n'; \
-          sawset proposal create \
-            -k /etc/sawtooth/keys/validator.priv \
-            sawtooth.consensus.algorithm.name=pbft \
+          do sleep 1; ls -l /volume-shared; done;
+          echo "sawtooth.consensus.pbft.members='[\"$$(cat /volume-shared/validator-0/keys/validator.pub)\",\"$$(cat /volume-shared/validator-1/keys/validator.pub)\",\"$$(cat /volume-shared/validator-2/keys/validator.pub)\",\"$$(cat /volume-shared/validator-3/keys/validator.pub)\"]'"
+          echo '--- Create proposal ... ---\n';
+          sawset proposal create -k /etc/sawtooth/keys/validator.priv sawtooth.consensus.algorithm.name=pbft \
             sawtooth.consensus.algorithm.version=0.1 \
-            sawtooth.consensus.pbft.members=\\[\"'$$(cat /volume-shared/validator-0/keys/validator.pub)'\",\"'$$(cat /volume-shared/validator-1/keys/validator.pub)'\",\"'$$(cat /volume-shared/validator-2/keys/validator.pub)'\",\"'$$(cat /volume-shared/validator-3/keys/validator.pub)'\"\\] \
+            sawtooth.consensus.pbft.members="'[\"$$(cat /volume-shared/validator-0/keys/validator.pub)\",\"$$(cat /volume-shared/validator-1/keys/validator.pub)\",\"$$(cat /volume-shared/validator-2/keys/validator.pub)\",\"$$(cat /volume-shared/validator-3/keys/validator.pub)\"]'" \
             sawtooth.publisher.max_batches_per_block=1200 \
-            -o config.batch ; \
-          sawadm genesis \
-            config-genesis.batch config.batch ; \
-          echo Done > /volume-shared/network_status_0.txt ; \
-          echo '--- First run setup completed... ---\n' ; \
-        else \
-          echo '--- First run setup skipped... ---\n' ; \
-        fi && \
+            -o config.batch
+          sawadm genesis config-genesis.batch config.batch
+          echo Done > /volume-shared/network_status_0.txt
+          echo '--- First run setup completed... ---\n'
+        else
+          echo '--- First run setup skipped... ---\n'
+        fi
         sawtooth-validator -v \
           --bind network:tcp://eth0:8800 \
           --bind component:tcp://eth0:4004 \
@@ -248,38 +246,115 @@ services:
           --scheduler serial \
           --maximum-peer-connectivity 10000 \
           --network-auth trust
-    \""
+
+#    command: |
+#      bash -c "
+#        if [ ! -f /volume-shared/network_status_0.txt ]; then \
+#          echo '--- First run setup started... ---\n'; \
+#          sawadm keygen --force; \
+#          mkdir -p /volume-shared/validator-0 || true; \
+#          cp -a /etc/sawtooth/keys /volume-shared/validator-0/ ; \
+#          echo '--- Generate genesis ... ---\n'; \
+#          sawset genesis \
+#            -k /etc/sawtooth/keys/validator.priv \
+#            -o config-genesis.batch ; \
+#          echo '--- Wait for pub files ... ---\n'; \
+#          while [[ ! -f /volume-shared/validator-1/keys/validator.pub || \
+#                   ! -f /volume-shared/validator-2/keys/validator.pub || \
+#                   ! -f /volume-shared/validator-3/keys/validator.pub ]];
+#          do sleep 1; ls -l /volume-shared; done; \
+#          # echo "\"'$$(cat /volume-shared/validator-0/keys/validator.pub)'\"" > /volume-shared/node_0_public_key.txt ; \
+#
+#          echo "\"" > /volume-shared/node_0_public_key.txt ; \
+#          echo $$(cat /volume-shared/validator-0/keys/validator.pub) > /volume-shared/node_0_public_key.txt ; \
+#          echo "\"" > /volume-shared/node_0_public_key.txt ; \
+#          echo $$(cat /volume-shared/node_0_public_key.txt) ; \
+#
+#          echo sawtooth.consensus.pbft.members=\\'[\"$$(cat /volume-shared/validator-0/keys/validator.pub)\",\"'$$(cat /volume-shared/validator-1/keys/validator.pub)'\",\"'$$(cat /volume-shared/validator-2/keys/validator.pub)'\",\"'$$(cat /volume-shared/validator-3/keys/validator.pub)'\"]\\' ; \
+#          echo '--- Create proposal ... ---\n'; \
+#          sawset proposal create \
+#            -k /etc/sawtooth/keys/validator.priv \
+#            sawtooth.consensus.algorithm.name=pbft \
+#            sawtooth.consensus.algorithm.version=0.1 \
+#            sawtooth.consensus.pbft.members=\\[\"'$$(cat /volume-shared/validator-0/keys/validator.pub)'\",\"'$$(cat /volume-shared/validator-1/keys/validator.pub)'\",\"'$$(cat /volume-shared/validator-2/keys/validator.pub)'\",\"'$$(cat /volume-shared/validator-3/keys/validator.pub)'\"\\] \
+#            sawtooth.publisher.max_batches_per_block=1200 \
+#            -o config.batch ; \
+#          sawadm genesis \
+#            config-genesis.batch config.batch ; \
+#          # echo Done > /volume-shared/network_status_0.txt ; \
+#          echo '--- First run setup completed... ---\n' ; \
+#        else \
+#          echo '--- First run setup skipped... ---\n' ; \
+#        fi && \
+#        sawtooth-validator -v \
+#          --bind network:tcp://eth0:8800 \
+#          --bind component:tcp://eth0:4004 \
+#          --bind consensus:tcp://eth0:5050 \
+#          --endpoint tcp://validator-0:8800 \
+#          --peering static \
+#          --scheduler serial \
+#          --maximum-peer-connectivity 10000 \
+#          --network-auth trust
+#      "
+
+  xo-tp-python-0:
+    image: hyperledger/sawtooth-xo-tp-python:chime
+    container_name: sawtooth-xo-tp-python-default-0
+    depends_on:
+      - validator-0
+    entrypoint: xo-tp-python -vv -C tcp://validator-0:4004
+
+  xo-tp-python-1:
+    image: hyperledger/sawtooth-xo-tp-python:chime
+    container_name: sawtooth-xo-tp-python-default-1
+    depends_on:
+      - validator-1
+    entrypoint: xo-tp-python -vv -C tcp://validator-1:4004
+
+  xo-tp-python-2:
+    image: hyperledger/sawtooth-xo-tp-python:chime
+    container_name: sawtooth-xo-tp-python-default-2
+    depends_on:
+      - validator-2
+    entrypoint: xo-tp-python -vv -C tcp://validator-2:4004
+
+  xo-tp-python-3:
+    image: hyperledger/sawtooth-xo-tp-python:chime
+    container_name: sawtooth-xo-tp-python-default-3
+    depends_on:
+      - validator-3
+    entrypoint: xo-tp-python -vv -C tcp://validator-3:4004
 
   intkey-tp-python-0:
-    image: hyperledger/sawtooth-intkey-tp-python:1.2.3
+    image: hyperledger/sawtooth-intkey-tp-python:chime
     container_name: sawtooth-intkey-tp-python-0
     depends_on:
       - validator-0
     entrypoint: intkey-tp-python -vv -C tcp://validator-0:4004
 
   intkey-tp-python-1:
-    image: hyperledger/sawtooth-intkey-tp-python:1.2.3
+    image: hyperledger/sawtooth-intkey-tp-python:chime
     container_name: sawtooth-intkey-tp-python-1
     depends_on:
       - validator-1
     entrypoint: intkey-tp-python -vv -C tcp://validator-1:4004
 
   intkey-tp-python-2:
-    image: hyperledger/sawtooth-intkey-tp-python:1.2.3
+    image: hyperledger/sawtooth-intkey-tp-python:chime
     container_name: sawtooth-intkey-tp-python-2
     depends_on:
       - validator-2
     entrypoint: intkey-tp-python -vv -C tcp://validator-2:4004
 
   intkey-tp-python-3:
-    image: hyperledger/sawtooth-intkey-tp-python:1.2.3
+    image: hyperledger/sawtooth-intkey-tp-python:chime
     container_name: sawtooth-intkey-tp-python-3
     depends_on:
       - validator-3
     entrypoint: intkey-tp-python -vv -C tcp://validator-3:4004
 
   validator-1:
-    image: hyperledger/sawtooth-validator:1.2.4
+    image: hyperledger/sawtooth-validator:chime
     container_name: sawtooth-validator-1
     expose:
       - 4004
@@ -315,7 +390,7 @@ services:
 
 
   validator-2:
-    image: hyperledger/sawtooth-validator:1.2.4
+    image: hyperledger/sawtooth-validator:chime
     container_name: sawtooth-validator-2
     expose:
       - 4004
@@ -351,7 +426,7 @@ services:
       "
 
   validator-3:
-    image: hyperledger/sawtooth-validator:1.2.4
+    image: hyperledger/sawtooth-validator:chime
     container_name: sawtooth-validator-3
     expose:
       - 4004
@@ -387,7 +462,7 @@ services:
             --network-auth trust
       "
   shell:
-    image: hyperledger/sawtooth-shell:1.2.4
+    image: hyperledger/sawtooth-shell:chime
     container_name: sawtooth-shell-default
     depends_on:
       - sawtooth-rest-api-0
