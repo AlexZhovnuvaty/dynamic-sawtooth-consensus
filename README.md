@@ -1,11 +1,11 @@
 # dynamic-sawtooth-consensus
 Dynamic Hyperledger Sawtooth that is able to change consensus dynamically through a code, Sawtooth has two consensus protocols, including PoET and PBFT. 
 
-##### How it works?
+# How it works?
 
 4 sawtooth nodes started and joined into one network. PBFT consensus is set by default. The repo includes 2 shell scripts which sets PBFT and PoET consensus accordingly.
 
-##### How to test?
+# How to test?
 
 - Start the infrastructure up (4 blockchain nodes up and running):
 
